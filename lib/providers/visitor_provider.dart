@@ -18,8 +18,10 @@ class VisitorProvider extends ChangeNotifier {
   // Método para inicializar después de que los servicios estén listos
   void initialize() {
     try {
-      print('🔄 Inicializando listener de visitantes...');
+      print('🔄 Inicializando VisitorProvider...');
+      // Comentar temporalmente el stream automático
       // Escuchar cambios en tiempo real desde Firebase
+      /*
       HybridService.getVisitorsStream().listen(
         (visitors) {
           print('📱 Recibidos ${visitors.length} visitantes del stream');
@@ -32,6 +34,7 @@ class VisitorProvider extends ChangeNotifier {
           notifyListeners();
         },
       );
+      */
     } catch (e) {
       print('❌ Error inicializando listeners: $e');
     }
@@ -61,10 +64,9 @@ class VisitorProvider extends ChangeNotifier {
       await HybridService.addVisitor(visitor);
       print('✅ Visitante agregado correctamente');
       
-      // Forzar recarga manual como respaldo
+      // Forzar recarga manual después de agregar
       await loadVisitors();
       
-      // El listener en tiempo real actualizará la lista automáticamente
     } catch (e) {
       print('❌ Error agregando visitante: $e');
       _error = e.toString();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../providers/auth_provider.dart';
 import '../providers/visitor_provider.dart';
 import '../models/visitor.dart';
@@ -14,6 +15,26 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   @override
+  void initState() {
+    super.initState();
+    // Cargar visitantes al inicializar la pantalla
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadVisitors();
+    });
+  }
+
+  void _loadVisitors() {
+    final visitorProvider = Provider.of<VisitorProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    print('🔍 HomeScreen - Cargando visitantes...');
+    print('👤 Usuario actual: ${authProvider.user?.email}');
+    print('🆔 User ID: ${authProvider.user?.id}');
+    
+    visitorProvider.loadVisitors();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final visitorProvider = Provider.of<VisitorProvider>(context);
@@ -25,11 +46,71 @@ class _HomeScreenState extends State<HomeScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          // Botón de debug
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            tooltip: 'Debug info',
+            onPressed: () async {
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              final userId = authProvider.user?.id;
+              
+              // Hacer consulta directa para debug
+              final firestore = FirebaseFirestore.instance;
+              
+              // Obtener TODOS los visitantes
+              final allDocs = await firestore.collection('visitors').get();
+              final userDocs = await firestore
+                  .collection('visitors')
+                  .where('user_id', isEqualTo: userId)
+                  .get();
+              
+              if (mounted) {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Debug Info'),
+                    content: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Email: ${authProvider.user?.email}'),
+                          Text('User ID: ${userId}'),
+                          Text('Total visitantes en DB: ${allDocs.docs.length}'),
+                          Text('Visitantes del usuario: ${userDocs.docs.length}'),
+                          const SizedBox(height: 10),
+                          const Text('Todos los visitantes:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ...allDocs.docs.map((doc) {
+                            final data = doc.data();
+                            return Text('${data['name']} - UserID: ${data['user_id']}', 
+                                      style: const TextStyle(fontSize: 12));
+                          }).toList(),
+                        ],
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cerrar'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
+            tooltip: 'Recargar visitantes',
             onPressed: () {
               print('🔄 Recarga manual solicitada');
-              Provider.of<VisitorProvider>(context, listen: false).loadVisitors();
+              _loadVisitors();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Recargando visitantes...'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
             },
           ),
           IconButton(
@@ -122,6 +203,40 @@ class _HomeScreenState extends State<HomeScreen> {
                                 'Agrega el primer visitante usando el botón +',
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: Colors.grey[500],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              // Debug info
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                margin: const EdgeInsets.symmetric(horizontal: 20),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange[50],
+                                  border: Border.all(color: Colors.orange[200]!),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      'Debug Info:',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.orange[800],
+                                      ),
+                                    ),
+                                    Text(
+                                      'Usuario: ${authProvider.user?.email ?? "No autenticado"}',
+                                      style: TextStyle(fontSize: 12, color: Colors.orange[700]),
+                                    ),
+                                    Text(
+                                      'Lista vacía: ${visitorProvider.visitors.isEmpty}',
+                                      style: TextStyle(fontSize: 12, color: Colors.orange[700]),
+                                    ),
+                                    Text(
+                                      'Error: ${visitorProvider.error ?? "Ninguno"}',
+                                      style: TextStyle(fontSize: 12, color: Colors.orange[700]),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],

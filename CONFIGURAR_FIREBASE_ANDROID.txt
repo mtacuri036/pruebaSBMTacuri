@@ -1,0 +1,32 @@
+# INSTRUCCIONES: CONFIGURACIÓN DE FIREBASE PARA ANDROID
+
+## 📁 Ubicación del archivo google-services.json
+
+1. Descarga `google-services.json` desde Firebase Console
+2. Colócalo en: `android/app/google-services.json`
+
+## 📝 Actualizar android/build.gradle.kts (nivel proyecto)
+
+Agrega al final del archivo:
+```kotlin
+plugins {
+    id("com.google.gms.google-services") version "4.4.0" apply false
+}
+```
+
+## 📝 Actualizar android/app/build.gradle.kts
+
+Agrega al inicio (después de otros plugins):
+```kotlin
+plugins {
+    id("com.android.application")
+    id("kotlin-android")
+    id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")  // <- AGREGAR ESTA LÍNEA
+}
+```
+
+## ⚠️ IMPORTANTE:
+- Copia exactamente el package name desde Firebase Console
+- El archivo google-services.json debe estar en android/app/ (no en android/)
+- Después de estos cambios, ejecuta: flutter clean && flutter pub get
